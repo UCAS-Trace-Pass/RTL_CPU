@@ -1,0 +1,14 @@
+
+1.top模块
+2.if级延迟槽、if_flush规则
+3.id级中断
+4.ex级store，mtc0，mthi，mtlo来源
+5.cp0级更新规则
+6.wb级one hot、cp0结果
+
+
+store: rt
+mtc0:  rt
+mthi,mtlo: rs
+bne,beq: rs, rt
+b型: rs
