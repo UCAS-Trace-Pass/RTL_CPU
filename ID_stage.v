@@ -26,11 +26,13 @@ module ID_stage(
 	output wire[4:0]     ID_reg_raddr2       ,
 	output wire          ID_vsrc1_valid      ,
 	output wire          ID_vsrc2_valid      ,
+	output wire          ID_rt1_valid        ,
+	output wire          ID_rt2_valid        ,
 	output wire          ID_goto_MEM         ,   // 是否经过MEM级
 	output wire          ID_goto_CP0         ,   // 是否经过CP0级 (将LO HI 的修改也放在CP0级)
 	output wire          ID_goto_WB          ,    // 是否经过WB级
-	output wire[31:0]    ID_reg1_br          ,    // BR指令用，记录两个源寄存器的值
-	output wire[31:0]    ID_reg2_br          ,
+	output wire[31:0]    ID_reg1_rt          ,    // BR指令用，记录两个源寄存器的值
+	output wire[31:0]    ID_reg2_rt          ,
        
 	output wire[31:0]    ID_vsrc1            , //以下是assign了但是没有声明的
     output wire[31:0]    ID_vsrc2            ,
@@ -90,8 +92,9 @@ module ID_stage(
 	//ID传递
 	output reg[31:0] 	ID_pc                ,
 	output reg[31:0] 	ID_inst              ,
-	output reg			ID_delay_slot         
-
+	output reg			ID_delay_slot        ,
+    output wire [25:0]  ID_j_index           ,     //instr_index for type "j"
+    output wire [31:0]  ID_jr_index                //target for type "jr"
 );
 	assign Cache_inst_ack = !(ID_stall | ID_clear | !resetn);
 	
@@ -297,8 +300,12 @@ module ID_stage(
 	assign ID_vsrc1_valid = ID_reg_valid1;   
 	assign ID_vsrc2_valid = ID_reg_valid2;
 	
-	assign 	ID_reg1_br = ID_reg_rdata1;
-	assign 	ID_reg2_br = ID_reg_rdata2;
+	assign ID_rt1_valid = ID_reg_valid1;
+	assign ID_rt2_valid = ID_reg_valid2;
+	
+	
+	assign ID_reg1_br = ID_reg_rdata1;
+	assign ID_reg2_br = ID_reg_rdata2;
 	
 	
 	
@@ -319,13 +326,25 @@ module ID_stage(
 						  
 	// 00 : reg_rdata2   01 : sign-16  10 : zero-16   11 : 8			  
 	assign ID_vsrc2_op = (ID_load || ID_store || ID_arithmetic_imm) ? 2'b01 : 
-						 (ID_logic_imm) ? 2'b10 :
-						 (BGEZAL | BLTZAL | JALR | JAL) ? 2'b11 : 
+						 (ID_logic_imm || ID_branch_1 || ID_branch_2) ? 2'b10 :
+						 (JALR | JAL) ? 2'b11 : 
 						  2'b00;
 	
 	
 	assign ID_vsrc1_temp = (MFHI) ? HI :
 						   (MFLO) ? LO :
+						   (MFC0) ? (
+						   (ID_inst[15:11] == 5'd0 ) ? CP0_INDEX :
+	                       (ID_inst[15:11] == 5'd2 ) ? CP0_ENTRYLO0 :
+	                       (ID_inst[15:11] == 5'd3 ) ? CP0_ENTRYLO1 :
+	                       (ID_inst[15:11] == 5'd5 ) ? CP0_PAGEMASK :
+	                       (ID_inst[15:11] == 5'd8 ) ? CP0_BADVADDR :
+	                       (ID_inst[15:11] == 5'd9 ) ? CP0_COUNT :
+						   (ID_inst[15:11] == 5'd10) ? CP0_ENTRYHI :
+	                       (ID_inst[15:11] == 5'd11) ? CP0_COMPARE :
+	                       (ID_inst[15:11] == 5'd12) ? CP0_STATUS :
+	                       (ID_inst[15:11] == 5'd13) ? CP0_CAUSE :
+	                       (ID_inst[15:11] == 5'd14) ? CP0_EPC : 32'd0) :
 							ID_reg_rdata1;
 					       
 	
@@ -412,5 +431,12 @@ module ID_stage(
 	);
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	
+	assign ID_jr_index = ID_vsrc1_temp;
+	assign ID_j_index = ID_inst[25:0];
+	
+	assign ID_reg1_rt = ID_reg_rdata1;
+	assign ID_reg2_rt = ID_reg_rdata2;
 	
 endmodule // EXE_stage	

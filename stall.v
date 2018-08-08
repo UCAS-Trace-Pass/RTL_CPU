@@ -22,10 +22,13 @@ module stall(
 
 	output wire        EXE_srcA_for,    // 1表示前递数据已经准备好，0表示未准备好
 	output wire        EXE_srcB_for,
-	
+	output wire        EXE_rtA_for,
+	output wire        EXE_rtB_for,
 	
 	input EXE_src1_forward,   // EXE的源寄存器1是否需要拿前递值
 	input EXE_src2_forward,   // EXE的源寄存器2是否需要拿前递值
+	input EXE_rt1_forward,
+	input EXE_rt2_forward,
 	
 	input sec_reg_rdata1_valid,
 	input sec_reg_rdata2_valid,   // 从sec_regfile 中获得，表示前递值已有效
@@ -64,13 +67,15 @@ module stall(
 	
 	assign EXE_srcA_for = (EXE_src1_forward && sec_reg_rdata1_valid) ? 2'b01 :
 						  2'b00;
-
-	
 	
 	assign EXE_srcB_for = (EXE_src2_forward && sec_reg_rdata2_valid) ? 2'b01 :
+						  2'b00;					
+
+	assign EXE_rtA_for = (EXE_rt1_forward && sec_reg_rdata1_valid) ? 2'b01 :
 						  2'b00;
 						
-							 
+	assign EXE_rtB_for = (EXE_rt2_forward && sec_reg_rdata2_valid) ? 2'b01 :
+						  2'b00;		
 
 
 endmodule
