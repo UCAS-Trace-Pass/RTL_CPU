@@ -21,8 +21,8 @@ module CP0_stage(
 	input wire        EXE_ERET         ,	//ERET指令
 	input wire        EXE_MTC0         ,    //MTC0指令
 
-	input wire        EXE_mul_out_valid ,	//乘法器结果是否有效   (MULT和MULTU指令)	
-	input wire        EXE_div_out_valid ,	//除法器结果是否有效
+	input wire        EXE_mul_finish ,	//乘法器结果是否有效   (MULT和MULTU指令)	
+	input wire        EXE_div_finish ,	//除法器结果是否有效
 	input wire        EXE_MTLO          ,	//MTLO指令
 	input wire        EXE_MTHI          ,	//MTHI指令
 	input wire [63:0] EXE_mul_result    ,	//乘法器结果
@@ -38,10 +38,8 @@ module CP0_stage(
 	output reg [31:0] CP0_LO,
 	output reg [31:0] CP0_HI,
 	
-	output wire  CP0_flush,
-	output wire  Exception,
-	output wire  Interrupt
-	
+	output wire  	  Exception,
+	output wire  	  Interrupt
 );
 ////例外信号
 reg        CP0_exc_overflow ;            				
@@ -62,8 +60,8 @@ reg        CP0_ERET              ;
 reg        CP0_MTC0              ;	
 
 /////hi lo寄存器相关变量
-reg        CP0_mul_out_valid     ;	
-reg        CP0_div_out_valid     ;	
+reg        CP0_mul_finish     ;	
+reg        CP0_div_finish     ;	
 reg        CP0_MTLO              ;	
 reg        CP0_MTHI              ;	
 reg        CP0_mul_lo_value      ;	
@@ -93,8 +91,8 @@ begin
 	CP0_ERET           <= (!resetn) ? 1'b0 : EXE_ERET            ;
     CP0_MTC0           <= (!resetn) ? 1'b0 : EXE_MTC0            ;
 
-    CP0_mul_out_valid  <= (!resetn) ? 1'b0 : EXE_mul_out_valid  ;	
-    CP0_div_out_valid  <= (!resetn) ? 1'b0 : EXE_div_out_valid  ;
+    CP0_mul_finish  <= (!resetn) ? 1'b0 : EXE_mul_finish  ;	
+    EXE_div_finish  <= (!resetn) ? 1'b0 : EXE_div_finish  ;
     CP0_MTLO           <= (!resetn) ? 1'b0 : EXE_MTLO           ;
     CP0_MTHI           <= (!resetn) ? 1'b0 : EXE_MTHI           ;
     CP0_mul_lo_value   <= (!resetn) ? 1'b0 : EXE_mul_result[31: 0] ;
@@ -109,14 +107,14 @@ always @(posedge clk)
 begin
 	CP0_LO <= (!resetn) ? 32'h00000000:
 		  CP0_MTLO ? CP0_wdata:
-		  CP0_mul_out_valid ? CP0_mul_lo_value:
-		  CP0_div_out_valid ? CP0_div_lo_value:
+		  CP0_mul_finish ? CP0_mul_lo_value:
+		  EXE_div_finish ? CP0_div_lo_value:
 		  CP0_LO;
 		  
 	CP0_HI <= (!resetn) ? 32'h00000000:
 		  CP0_MTHI ? CP0_wdata:
-		  CP0_mul_out_valid ? CP0_mul_hi_value:
-		  CP0_div_out_valid ? CP0_div_hi_value:
+		  CP0_mul_finish ? CP0_mul_hi_value:
+		  EXE_div_finish ? CP0_div_hi_value:
 		  CP0_HI;
 end
 
@@ -153,7 +151,7 @@ wire Epc_value = (CP0_delay_slot) ? CP0_pc - 4 : CP0_pc;
 
 assign Interrupt = Clk_interrupt | Soft_interrupt | Hard_interrupt;
 assign Exception = CP0_exc_syscall | CP0_exc_break | CP0_exc_addr_inst | CP0_exc_no_inst | CP0_exc_overflow | CP0_exc_addr_load | CP0_exc_addr_store;
-assign CP0_flush = Exception | Interrupt;
+//assign CP0_flush = Exception | Interrupt;
 
 reg Count_step;
 

@@ -22,7 +22,7 @@ module ID_stage(
 	output wire          Cache_inst_ack      ,
 	output wire          Delay               ,
 	
-	output wire[4:0]     ID_reg_raddr1       , ??? //应为id_src1 id_src2 ?
+	output wire[4:0]     ID_reg_raddr1       , //???????????应为id_src1 id_src2 ?
 	output wire[4:0]     ID_reg_raddr2       ,
 	output wire          ID_vsrc1_valid      ,
 	output wire          ID_vsrc2_valid      ,
@@ -62,7 +62,7 @@ module ID_stage(
     output wire          ID_blz              ,
     output wire          ID_b_predict        ,
     output wire[4:0]     ID_dest             ,
-    output wire[5:0]     ID_irp_signal       , ???   //外部传来的硬件中断信号interrupt signal
+    //output wire[5:0]     ID_irp_signal       , ???   //外部传来的硬件中断信号interrupt signal
 	output wire          ID_ERET             ,
 	output wire          ID_MTC0             ,
 	output wire          ID_MTLO             ,

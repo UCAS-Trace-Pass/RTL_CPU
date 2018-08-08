@@ -57,14 +57,20 @@ module stall(
 					   ((MEM_l_type || MEM_s_type) && !data_data_ok);
 	
 	assign MEM_stall = ((MEM_l_type || MEM_s_type) && !data_data_ok);
+	
+
+	
 
 	
 	assign EXE_srcA_for = (EXE_src1_forward && sec_reg_rdata1_valid) ? 2'b01 :
 						  2'b00;
 
 	
+	
 	assign EXE_srcB_for = (EXE_src2_forward && sec_reg_rdata2_valid) ? 2'b01 :
 						  2'b00;
+						
+							 
 
 
 endmodule

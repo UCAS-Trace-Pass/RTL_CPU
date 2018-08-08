@@ -1,7 +1,6 @@
  module sec_regfile(
     input         clk,
 
-	
     input  [4:0]  raddr1,
     output [31:0] rdata1,
 	output        rdata1_valid,
@@ -20,8 +19,6 @@
 	input         MEM_forward,
 	input  [4:0]  MEM_addr,
 	input  [31:0] MEM_addr,
-	
-
 );
 
 	reg  [31:0] r [32:0];   // 1'b1 valid + 32'b data
