@@ -194,6 +194,7 @@ wire         fwd_vsrc1_valid	;
 wire         fwd_vsrc2_valid	;
 
 
+wire[31:0]   EXE_pc_add_8    	;
 wire[31:0]   EXE_alu_result 	;
 wire[63:0]   EXE_mul_result 	;
 reg          EXE_mul_finish 	;
@@ -269,7 +270,8 @@ wire         MEM_predict_error			;
 wire[31:0]   MEM_correct_branch_pc		;
 wire[31:0]   MEM_mem_rdata   			;
 
-wire[31:0]   MEM_alu_result  			;//MEM级用
+wire[31:0]   MEM_pc_add_8    	        ;//MEM级用
+wire[31:0]   MEM_alu_result  			;
 wire[31:0]   MEM_mem_wdata   			;
 wire[ 4:0]   MEM_mem_wen     			;
 wire         MEM_load        			;
@@ -557,6 +559,7 @@ module EXE_stage(
 	.ID_MTLO        	(ID_MTLO        	),
 	.ID_MTHI        	(ID_MTHI        	),
 
+    .EXE_pc_add_8       (EXE_pc_add_8       ),
     .EXE_alu_result 	(EXE_alu_result 	),
     .EXE_mul_result 	(EXE_mul_result 	),
     .EXE_mul_finish 	(EXE_mul_finish 	),
@@ -631,6 +634,7 @@ module MEM_stage(
     .Cache_data_Read_data  		(Cache_data_Read_data  		),
     .Cache_data_Read_data_valid	(Cache_data_Read_data_valid	),
 
+    .EXE_pc_add_8               (EXE_pc_add_8       ),
     .EXE_alu_result  			(EXE_alu_result  			), //MEM级用
     .EXE_mem_wdata   			(EXE_mem_wdata   			),
     .EXE_mem_wen     			(EXE_mem_wen     			),
@@ -664,6 +668,7 @@ module MEM_stage(
     .MEM_correct_branch_pc		(MEM_correct_branch_pc		),
     .MEM_mem_rdata   			(MEM_mem_rdata   			),
 
+    .MEM_pc_add_8               (MEM_pc_add_8               ),
     .MEM_alu_result  			(MEM_alu_result  			),//MEM级用
     .MEM_mem_wdata   			(MEM_mem_wdata   			),
     .MEM_mem_wen     			(MEM_mem_wen     			),

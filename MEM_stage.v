@@ -17,7 +17,8 @@ module MEM_stage(
     input wire[31:0]    Cache_data_Read_data  ,
     input wire          Cache_data_Read_data_valid,
     //流水线信号
-    input wire[31:0]    EXE_alu_result  , //MEM级用
+    input wire[31:0]    EXE_pc_add_8    , //MEM级用
+    input wire[31:0]    EXE_alu_result  ,
     input wire[31:0]    EXE_mem_wdata   ,
     input wire[ 4:0]    EXE_mem_wen     ,
     input wire          EXE_load        ,
@@ -53,7 +54,8 @@ module MEM_stage(
     output wire[31:0]   MEM_mem_rdata   ,
     
     //流水线信号
-    output reg[31:0]    MEM_alu_result  ,//MEM级用
+    output reg[31:0]    MEM_pc_add_8    ,//MEM级用
+    output reg[31:0]    MEM_alu_result  ,
     output reg[31:0]    MEM_mem_wdata   ,
     output reg[ 4:0]    MEM_mem_wen     ,
     output reg          MEM_load        ,
@@ -81,7 +83,8 @@ module MEM_stage(
     //寄存器更新规则？
     always@(posedge clk) begin
     	if (!resetn || !MEM_stall && !(EXE_goto_Mem && !EXE_stall)) begin
-            MEM_alu_result  <= 0 ; //MEM级用
+            MEM_pc_add_8    <= 0 ; //MEM级用
+            MEM_alu_result  <= 0 ;
             MEM_mem_wdata   <= 0 ; 
             MEM_mem_wen     <= 0 ; 
             MEM_load        <= 0 ; 
@@ -108,7 +111,8 @@ module MEM_stage(
 			;
 		end 
 		else begin
-            MEM_alu_result  <= EXE_alu_result  ; //MEM级用
+            MEM_pc_add_8    <= EXE_pc_add_8    ; //MEM级用
+            MEM_alu_result  <= EXE_alu_result  ; 
             MEM_mem_wdata   <= EXE_mem_wdata   ; 
             MEM_mem_wen     <= EXE_mem_wen     ; 
             MEM_load        <= EXE_load        ; 
@@ -171,6 +175,6 @@ module MEM_stage(
 
     //branch:
     assign MEM_predict_error = MEM_b_predict ^ MEM_b_taken;
-    assign MEM_correct_branch_pc = (MEM_b_taken)? MEM_alu_result+4 : MEM_pc+8;
+    assign MEM_correct_branch_pc = (MEM_b_taken)? MEM_alu_result : MEM_pc_add_8;
     
 endmodule // MEM_stage

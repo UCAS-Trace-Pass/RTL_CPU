@@ -98,10 +98,11 @@ module ID_stage(
 );
 	assign Cache_inst_ack = !(ID_stall | ID_clear | !resetn);
 	
+	/*
 	wire ID_arithmetic_unimm; // 不带立即数的算术运算，不包括乘除法(dest地址为[15:11])
 	wire ID_arithmetic_imm;   // 带立即数的算术运算
 	wire ID_arithmetic;       // 所有算术运算，包括乘除法
-	
+	*/
 	
 	
 	

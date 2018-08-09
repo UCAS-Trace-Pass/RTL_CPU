@@ -61,6 +61,7 @@ module EXE_stage(
 
     //O
     //EXE级产生
+    output wire[31:0]   EXE_pc_add_8   ,
     output wire[31:0]   EXE_alu_result ,
     output wire[63:0]   EXE_mul_result ,
     output reg          EXE_mul_finish ,
@@ -317,6 +318,7 @@ module EXE_stage(
     
     assign EXE_bad_addr = (EXE_exc_no_inst)? EXE_pc : EXE_alu_result;
     
+    assign EXE_pc_add_8 = EXE_pc + 8;
     //branch
     wire gez = (rs[31]==0);
     wire eqz = (rs == 0);
