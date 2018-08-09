@@ -121,11 +121,13 @@ wire[4:0]     ID_reg_raddr1       ; //应为id_src1 id_src2 ?
 wire[4:0]     ID_reg_raddr2       ;
 wire          ID_vsrc1_valid      ;
 wire          ID_vsrc2_valid      ;
+wire          ID_rt1_valid        ;
+wire          ID_rt2_valid        ;
 wire          ID_goto_MEM         ;   // 是否经过MEM级
 wire          ID_goto_CP0         ;   // 是否经过CP0级 (将LO HI 的修改也放在CP0级)
 wire          ID_goto_WB          ;    // 是否经过WB级
-wire[31:0]    ID_reg1_br          ;    // BR指令用，记录两个源寄存器的值
-wire[31:0]    ID_reg2_br          ;
+wire[31:0]    ID_rt1              ;    // BR指令用，记录两个源寄存器的值
+wire[31:0]    ID_rt2              ;
 
 wire[31:0]    ID_vsrc1            ; //以下是assign了但是没有声明的
 wire[31:0]    ID_vsrc2            ;/**************** end *******************/
@@ -165,6 +167,8 @@ wire          ID_MTHI             ;
 wire          ID_no_inst          ;
 wire          ID_syscall          ;
 wire          ID_break            ;
+wire          ID_use_rt1          ;
+wire          ID_use_rt2          ;
 wire          ID_arithmetic_unimm ; //下面这些信号，后面的级似乎没用到
 wire          ID_arithmetic_imm   ;
 wire          ID_arithmetic       ;
@@ -192,7 +196,10 @@ wire[31:0]   fwd_vsrc1			;
 wire[31:0]   fwd_vsrc2			;
 wire         fwd_vsrc1_valid	;
 wire         fwd_vsrc2_valid	;
-
+wire         EXE_srcA_for       ;
+wire         EXE_srcB_for       ;
+wire         EXE_rt1_for        ;
+wire         EXE_rt2_for        ;
 
 wire[31:0]   EXE_pc_add_8    	;
 wire[31:0]   EXE_alu_result 	;
@@ -245,6 +252,14 @@ wire         EXE_blz         	;
 wire         EXE_syscall     	;
 wire         EXE_break       	;
 wire         EXE_no_inst     	;
+wire         EXE_vsrc1_valid    ;
+wire         EXE_vsrc2_valid    ;
+wire         EXE_rt1_valid      ;
+wire         EXE_rt2_valid      ;
+wire[31:0]   EXE_src1           ;
+wire[31:0]   EXE_src2           ;
+wire         EXE_use_rt1        ;
+wire         EXE_use_rt2        ;
 wire         EXE_b_predict   	;//CP0/MM/WB级使用
 wire[31:0]   EXE_pc          	;
 wire[31:0]   EXE_inst        	;
@@ -437,11 +452,13 @@ module ID_stage(
 	.ID_reg_raddr2      (ID_reg_raddr2      ),
 	.ID_vsrc1_valid     (ID_vsrc1_valid     ),
 	.ID_vsrc2_valid     (ID_vsrc2_valid     ),
+	.ID_rt1_valid       (ID_rt1_valid       ),
+	.ID_rt2_valid       (ID_rt2_valid       ),
 	.ID_goto_MEM        (ID_goto_MEM        ),   // 是否经过MEM级
 	.ID_goto_CP0        (ID_goto_CP0        ),   // 是否经过CP0级 (将LO HI 的修改也放在CP0级)
 	.ID_goto_WB         (ID_goto_WB         ),    // 是否经过WB级
-	.ID_reg1_br         (ID_reg1_br         ),    // BR指令用，记录两个源寄存器的值
-	.ID_reg2_br         (ID_reg2_br         ),
+	.ID_rt1             (ID_rt1             ),    // BR指令用，记录两个源寄存器的值
+	.ID_rt2             (ID_rt2             ),
 
 	.ID_vsrc1           (ID_vsrc1           ), //以下是assign了但是没有声明的
     .ID_vsrc2           (ID_vsrc2           ),
@@ -481,6 +498,8 @@ module ID_stage(
 	.ID_no_inst         (ID_no_inst         ),
 	.ID_syscall         (ID_syscall         ),
 	.ID_break           (ID_break           ),
+    .ID_use_rt1         (ID_use_rt1         ),
+    .ID_use_rt2         (ID_use_rt2         ),
 	.ID_arithmetic_unimm(ID_arithmetic_unimm), //下面这些信号，后面的级似乎没用到
     .ID_arithmetic_imm  (ID_arithmetic_imm  ),
     .ID_arithmetic      (ID_arithmetic      ),
@@ -509,10 +528,18 @@ module EXE_stage(
 	.EXE_stall			(EXE_stall			),
 	.EXE_clear			(EXE_flush			),
 
-    .fwd_vsrc1			(),//////////??????????????????????????????从哪来
-    .fwd_vsrc2			(),
-    .fwd_vsrc1_valid	(),
-    .fwd_vsrc2_valid	(),
+    .fwd_vsrc1			(rdata1             ),//这4个fwd信号来自副寄存堆
+    .fwd_vsrc2			(rdata2             ),
+    .fwd_vsrc1_valid	(rdata1_valid       ),
+    .fwd_vsrc2_valid	(rdata2_valid       ),
+    .EXE_srcA_for       (EXE_srcA_for       ),
+    .EXE_srcB_for       (EXE_srcB_for       ),
+    .EXE_rt1_for        (EXE_rt1_for        ),
+    .EXE_rt2_for        (EXE_rt2_for        ),
+    .EXE_srcA_for       (EXE_srcA_for       ),
+    .EXE_srcB_for       (EXE_srcB_for       ),
+    .EXE_rt1_for        (EXE_rt1_for        ),
+    .EXE_rt2_for        (EXE_rt2_for        ),
 
     .ID_vsrc1       	(ID_vsrc1       	), //**** EXE级使用 ****
     .ID_vsrc2       	(ID_vsrc2       	),
@@ -545,6 +572,17 @@ module EXE_stage(
     .ID_syscall     	(ID_syscall     	),
     .ID_break       	(ID_break       	),
     .ID_no_inst     	(ID_no_inst     	),
+    .ID_vsrc1_valid     (ID_vsrc1_valid     ),
+    .ID_vsrc2_valid     (ID_vsrc2_valid     ),
+    .ID_rt1_valid       (ID_rt1_valid       ),
+    .ID_rt2_valid       (ID_rt2_valid       ),
+    .ID_src1            (ID_src1            ),
+    .ID_src2            (ID_src2            ),
+    .ID_rt1             (ID_rt1             ),
+    .ID_rt2             (ID_rt2             ),
+    .ID_use_rt1         (ID_use_rt1         ),
+    .ID_use_rt2         (ID_use_rt2         ),
+
     .ID_b_predict   	(ID_b_predict   	), //**** 后续使用 ****
     .ID_pc          	(ID_pc          	),
     .ID_inst        	(ID_inst        	),
@@ -610,6 +648,14 @@ module EXE_stage(
     .EXE_syscall     	(EXE_syscall     	),
     .EXE_break       	(EXE_break       	),
     .EXE_no_inst     	(EXE_no_inst     	),
+    .EXE_vsrc1_valid    (EXE_vsrc1_valid    ),
+    .EXE_vsrc2_valid    (EXE_vsrc2_valid    ),
+    .EXE_rt1_valid      (EXE_rt1_valid      ),
+    .EXE_rt2_valid      (EXE_rt2_valid      ),
+    .EXE_src1           (EXE_src1           ),
+    .EXE_src2           (EXE_src2           ),
+    .EXE_use_rt1        (EXE_use_rt1        ),
+    .EXE_use_rt2        (EXE_use_rt2        ),
     .EXE_b_predict   	(EXE_b_predict   	), //CP0/MM/WB级使用
     .EXE_pc          	(EXE_pc          	),
     .EXE_inst        	(EXE_inst        	),
@@ -763,19 +809,19 @@ module CP0_stage(
 ////////////?????????????????????????????????????????????????
 module stall(
 	.EXE_mul_div_validout(),
-	.ID_j_type			 (),
-	.ID_br_type			 (),
-	.ID_jr_type			 (),
-	.MEM_l_type			 (),
-	.MEM_s_type			 (),
-	.EXE_l_type			 (),
-	.EXE_s_type			 (),
-	.EXE_mul_div_type	 (),
+	.ID_j_type			 (ID_jump               ),
+	.ID_br_type			 (ID_b                  ),
+	.ID_jr_type			 (ID_jump_reg           ),
+	.MEM_l_type			 (MEM_load              ),
+	.MEM_s_type			 (MEM_store             ),
+	.EXE_l_type			 (EXE_load              ),
+	.EXE_s_type			 (EXE_store             ),
+	.EXE_mul_div_type	 (EXE_MULT | EXE_DIV    ),
 
 	.inst_data_ok		 (),
-	.data_data_ok		 (),
+	.data_data_ok		 (MEM_store && Cache_data_Mem_req_ack || MEM_load && Cache_data_Read_data_valid),
 	.data_addr_ok		 (),
-	.inst_addr_ok		 (),
+	.inst_addr_ok		 (Cache_data_Mem_req_ack),
 
 	.IF_stall 			 (IF_stall 			  ),
 	.ID_stall 			 (ID_stall 			  ),

@@ -12,6 +12,10 @@ module EXE_stage(
     input wire[31:0]    fwd_vsrc2,
     input wire          fwd_vsrc1_valid,
     input wire          fwd_vsrc2_valid,
+    input wire          EXE_srcA_for   ,
+    input wire          EXE_srcB_for   ,
+    input wire          EXE_rt1_for    ,
+    input wire          EXE_rt2_for    ,
     
     //来自流水线的信号
     input wire[31:0]    ID_vsrc1       , //**** EXE级使用 ****
@@ -45,7 +49,17 @@ module EXE_stage(
     input wire          ID_syscall     ,
     input wire          ID_break       ,
     input wire          ID_no_inst     ,
-    input wire          ID_b_predict   , //**** 后续使用 ****
+    input wire          ID_vsrc1_valid ,
+	input wire          ID_vsrc2_valid ,
+	input wire          ID_rt1_valid   ,
+	input wire          ID_rt2_valid   ,
+	input wire[31:0]    ID_src1        ,
+    input wire[31:0]    ID_src2        ,
+    input wire[31:0]    ID_rt1         ,
+    input wire[31:0]    ID_rt2         ,
+    input wire          ID_use_rt1     ,
+	input wire          ID_use_rt2     ,
+	input wire          ID_b_predict   , //**** 后续使用 ****
     input wire[31:0]    ID_pc          ,
     input wire[31:0]    ID_inst        ,
     input wire          ID_goto_CP0    ,
@@ -114,7 +128,15 @@ module EXE_stage(
     output reg         EXE_syscall     ,
     output reg         EXE_break       ,
     output reg         EXE_no_inst     ,
-    output reg         EXE_b_predict   , //CP0/MM/WB级使用
+    output reg         EXE_vsrc1_valid ,
+	output reg         EXE_vsrc2_valid ,
+	output reg         EXE_rt1_valid   ,
+	output reg         EXE_rt2_valid   ,
+	output reg[31:0]   EXE_src1        ,
+    output reg[31:0]   EXE_src2        ,
+    output reg         EXE_use_rt1     ,
+	output reg         EXE_use_rt2     ,
+	output reg         EXE_b_predict   , //CP0/MM/WB级使用
     output reg[31:0]   EXE_pc          ,
     output reg[31:0]   EXE_inst        ,
     output reg         EXE_goto_CP0    ,
@@ -138,7 +160,10 @@ module EXE_stage(
     assign EXE_flow = resetn && !EXE_clear && !EXE_stall;
     //数据有效？
     wire EXE_vsrc_valid;
-    assign EXE_vsrc_valid = ???;//todo
+    assign EXE_vsrc_valid = (EXE_vsrc1_valid || !EXE_vsrc1_valid && fwd_vsrc1_valid) &&
+                            (EXE_vsrc2_valid || !EXE_vsrc2_valid && fwd_vsrc2_valid) &&
+                            (!EXE_use_rt1 || EXE_use_rt1 && (EXE_rt1_valid || !EXE_rt1_valid && fwd_vsrc1_valid) ) &&
+                            (!EXE_use_rt2 || EXE_use_rt2 && (EXE_rt2_valid || !EXE_rt2_valid && fwd_vsrc2_valid) ) ;
 
     //流水线寄存器
     always@(posedge clk) begin
@@ -174,6 +199,16 @@ module EXE_stage(
             EXE_syscall     <= 0 ;
             EXE_break       <= 0 ;
             EXE_no_inst     <= 0 ;
+            EXE_vsrc1_valid <= 0 ;
+	        EXE_vsrc2_valid <= 0 ;
+	        EXE_rt1_valid   <= 0 ;
+	        EXE_rt2_valid   <= 0 ;
+	        EXE_src1        <= 0 ;
+            EXE_src2        <= 0 ;
+            EXE_rt1         <= 0 ;
+            EXE_rt2         <= 0 ;
+            EXE_use_rt1     <= 0 ;
+            EXE_use_rt2     <= 0 ;
             EXE_b_predict   <= 0 ; //CP0/MM/WB级使用
             EXE_pc          <= 0 ;
             EXE_inst        <= 0 ;
@@ -192,60 +227,72 @@ module EXE_stage(
 			;
 		end 
 		else begin
-            EXE_vsrc1       <= ID_vsrc1      ; //EXE级使用
-            EXE_vsrc2       <= ID_vsrc2      ;
-            EXE_ALUop       <= ID_ALUop      ;
-            EXE_MULT        <= ID_MULT       ;
-            EXE_DIV         <= ID_DIV        ;
-            EXE_unsigned    <= ID_unsigned   ;
-            EXE_store       <= ID_store      ;
-            EXE_SB          <= ID_SB         ;
-            EXE_SH          <= ID_SH         ;
-            EXE_SW          <= ID_SW         ;
-            EXE_SWL         <= ID_SWL        ;
-            EXE_SWR         <= ID_SWR        ;
-            EXE_load        <= ID_load       ;
-            EXE_LB          <= ID_LB         ;
-            EXE_LBU         <= ID_LBU        ;
-            EXE_LH          <= ID_LH         ;
-            EXE_LHU         <= ID_LHU        ;
-            EXE_LW          <= ID_LW         ;
-            EXE_LWL         <= ID_LWL        ;
-            EXE_LWR         <= ID_LWR        ;
-            EXE_jump        <= ID_jump       ;
-            EXE_jump_reg    <= ID_jump_reg   ;
-            EXE_b           <= ID_b          ;
-            EXE_bne         <= ID_bne        ;
-            EXE_beq         <= ID_beq        ;
-            EXE_bgz         <= ID_bgz        ;
-            EXE_bez         <= ID_bez        ;
-            EXE_blz         <= ID_blz        ;
-            EXE_syscall     <= ID_syscall    ;
-            EXE_break       <= ID_break      ;
-            EXE_no_inst     <= ID_no_inst    ;
-            EXE_b_predict   <= ID_b_predict  ; //CP0/MM/WB级使用
-            EXE_pc          <= ID_pc         ;
-            EXE_inst        <= ID_inst       ;
-            EXE_goto_CP0    <= ID_goto_CP0   ;
-            EXE_goto_MEM    <= ID_goto_MEM   ;
-            EXE_goto_WB     <= ID_goto_WB    ;
-            EXE_dest        <= ID_dest       ;
-            EXE_irp_signal  <= ID_irp_signal ; 
-            EXE_delay_slot  <= ID_delay_slot ;
-            EXE_ERET        <= ID_ERET       ;
-            EXE_MTC0        <= ID_MTC0       ;
-            EXE_MTLO        <= ID_MTLO       ;
-            EXE_MTHI        <= ID_MTHI       ;
+            EXE_vsrc1       <= ID_vsrc1       ; //EXE级使用
+            EXE_vsrc2       <= ID_vsrc2       ;
+            EXE_ALUop       <= ID_ALUop       ;
+            EXE_MULT        <= ID_MULT        ;
+            EXE_DIV         <= ID_DIV         ;
+            EXE_unsigned    <= ID_unsigned    ;
+            EXE_store       <= ID_store       ;
+            EXE_SB          <= ID_SB          ;
+            EXE_SH          <= ID_SH          ;
+            EXE_SW          <= ID_SW          ;
+            EXE_SWL         <= ID_SWL         ;
+            EXE_SWR         <= ID_SWR         ;
+            EXE_load        <= ID_load        ;
+            EXE_LB          <= ID_LB          ;
+            EXE_LBU         <= ID_LBU         ;
+            EXE_LH          <= ID_LH          ;
+            EXE_LHU         <= ID_LHU         ;
+            EXE_LW          <= ID_LW          ;
+            EXE_LWL         <= ID_LWL         ;
+            EXE_LWR         <= ID_LWR         ;
+            EXE_jump        <= ID_jump        ;
+            EXE_jump_reg    <= ID_jump_reg    ;
+            EXE_b           <= ID_b           ;
+            EXE_bne         <= ID_bne         ;
+            EXE_beq         <= ID_beq         ;
+            EXE_bgz         <= ID_bgz         ;
+            EXE_bez         <= ID_bez         ;
+            EXE_blz         <= ID_blz         ;
+            EXE_syscall     <= ID_syscall     ;
+            EXE_break       <= ID_break       ;
+            EXE_no_inst     <= ID_no_inst     ;
+            EXE_vsrc1_valid <= ID_vsrc1_valid ;
+            EXE_vsrc2_valid <= ID_vsrc2_valid ;
+            EXE_rt1_valid   <= ID_rt1_valid   ;
+            EXE_rt2_valid   <= ID_rt2_valid   ;
+            EXE_src1        <= ID_src1        ;
+            EXE_src2        <= ID_src2        ;
+            EXE_rt1         <= ID_rt1         ;
+            EXE_rt2         <= ID_rt2         ;
+            EXE_use_rt1     <= ID_use_rt1     ;
+            EXE_use_rt2     <= ID_use_rt2     ;
+            EXE_b_predict   <= ID_b_predict   ; //CP0/MM/WB级使用
+            EXE_pc          <= ID_pc          ;
+            EXE_inst        <= ID_inst        ;
+            EXE_goto_CP0    <= ID_goto_CP0    ;
+            EXE_goto_MEM    <= ID_goto_MEM    ;
+            EXE_goto_WB     <= ID_goto_WB     ;
+            EXE_dest        <= ID_dest        ;
+            EXE_irp_signal  <= ID_irp_signal  ; 
+            EXE_delay_slot  <= ID_delay_slot  ;
+            EXE_ERET        <= ID_ERET        ;
+            EXE_MTC0        <= ID_MTC0        ;
+            EXE_MTLO        <= ID_MTLO        ;
+            EXE_MTHI        <= ID_MTHI        ;
 		end
     end
 
     //源数据：
-    wire[31:0] vsrc1,vsrc2;
-    assign vsrc1 = ???;
-    assign vsrc2 = ???;
+    wire[31:0] vsrc1,vsrc2, rt1, rt2;
+    assign vsrc1 = (EXE_vsrc1_valid)? EXE_vsrc1 : fwd_vsrc1;
+    assign vsrc2 = (EXE_vsrc2_valid)? EXE_vsrc2 : fwd_vsrc2;
+    assign rt1 = (EXE_rt1_valid)? EXE_rt1 : fwd_vsrc1;
+    assign rt2 = (EXE_rt2_valid)? EXE_rt2 : fwd_vsrc2;
 
-    assign EXE_mem_wdata = ??? ;
-    assign EXE_cp0_wdata = ??? ;
+    assign EXE_mem_wdata = EXE_rt1;
+    assign EXE_cp0_wdata = (EXE_use_rt1)? EXE_rt1 : EXE_rt2 ;
 
     //alu
     wire EXE_alu_overflow;

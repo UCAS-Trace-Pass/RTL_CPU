@@ -31,8 +31,8 @@ module ID_stage(
 	output wire          ID_goto_MEM         ,   // 是否经过MEM级
 	output wire          ID_goto_CP0         ,   // 是否经过CP0级 (将LO HI 的修改也放在CP0级)
 	output wire          ID_goto_WB          ,    // 是否经过WB级
-	output wire[31:0]    ID_reg1_rt          ,    // BR指令用，记录两个源寄存器的值
-	output wire[31:0]    ID_reg2_rt          ,
+	output wire[31:0]    ID_rt1              ,    // BR指令用，记录两个源寄存器的值
+	output wire[31:0]    ID_rt2              ,
        
 	output wire[31:0]    ID_vsrc1            , //以下是assign了但是没有声明的
     output wire[31:0]    ID_vsrc2            ,
@@ -72,6 +72,8 @@ module ID_stage(
 	output wire          ID_no_inst          ,
 	output wire          ID_syscall          ,
 	output wire          ID_break            ,
+	output wire          ID_use_rt1          ,
+	output wire          ID_use_rt2          ,
 	output wire          ID_arithmetic_unimm , //下面这些信号，后面的级似乎没用到
     output wire          ID_arithmetic_imm   ,
     output wire          ID_arithmetic       ,
@@ -305,8 +307,8 @@ module ID_stage(
 	assign ID_rt2_valid = ID_reg_valid2;
 	
 	
-	assign ID_reg1_br = ID_reg_rdata1;
-	assign ID_reg2_br = ID_reg_rdata2;
+	assign ID_rt1 = ID_reg_rdata1;
+	assign ID_rt2 = ID_reg_rdata2;
 	
 	
 	
@@ -431,13 +433,19 @@ module ID_stage(
 	    .predict_taken  (ID_b_predict)
 	);
 
+	assign ID_use_rt1 = BNE | BEQ | MTHI | MTLO 	| ID_branch_2;
+	assign ID_use_rt2 = BNE | BEQ | MTC0 | ID_store ;
+
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	
 	assign ID_jr_index = ID_vsrc1_temp;
 	assign ID_j_index = ID_inst[25:0];
 	
-	assign ID_reg1_rt = ID_reg_rdata1;
-	assign ID_reg2_rt = ID_reg_rdata2;
+	assign ID_rt1 = ID_reg_rdata1;
+	assign ID_rt2 = ID_reg_rdata2;
 	
+	assign ID_reg_raddr1 = ID_src1;
+	assign ID_reg_raddr2 = ID_src2;
+
 endmodule // EXE_stage	
