@@ -123,10 +123,10 @@ wire          ID_vsrc1_valid      ;
 wire          ID_vsrc2_valid      ;
 wire          ID_rt1_valid        ;
 wire          ID_rt2_valid        ;
-wire          ID_goto_MEM         ;   // 是否经过MEM�?
-wire          ID_goto_CP0         ;   // 是否经过CP0�? (将LO HI 的修改也放在CP0�?)
-wire          ID_goto_WB          ;    // 是否经过WB�?
-wire[31:0]    ID_rt1              ;    // BR指令用，记录两个源寄存器的�??
+wire          ID_goto_MEM         ;   // 是否经过MEM�?
+wire          ID_goto_CP0         ;   // 是否经过CP0�? (将LO HI 的修改也放在CP0�?)
+wire          ID_goto_WB          ;    // 是否经过WB�?
+wire[31:0]    ID_rt1              ;    // BR指令用，记录两个源寄存器的�??
 wire[31:0]    ID_rt2              ;
 
 wire[31:0]    ID_vsrc1            ; //以下是assign了但是没有声明的
@@ -205,23 +205,23 @@ wire[31:0]   EXE_pc_add_8    	;
 wire[31:0]   EXE_alu_result 	;
 wire[63:0]   EXE_mul_result 	;
 reg          EXE_mul_finish 	;
-wire[63:0]   EXE_div_result 	;//�?32位：余数 �?32位：�?
+wire[63:0]   EXE_div_result 	;//�?32位：余数 �?32位：�?
 wire         EXE_div_finish 	;
 wire[3:0]    EXE_mem_wen    	;
 wire[31:0]   EXE_mem_wdata  	;
 
 wire         EXE_exc_overflow  	;
-wire         EXE_exc_addr_load 	;//取指或读数据错误 //取�?�地�?错我咋判�?
-wire         EXE_exc_addr_store	;//写数据地�?错误
+wire         EXE_exc_addr_load 	;//取指或读数据错误 //取�?�地�?错我咋判�?
+wire         EXE_exc_addr_store	;//写数据地�?错误
 wire         EXE_exc_addr_inst 	;
 wire         EXE_exc_syscall   	;
 wire         EXE_exc_break     	;
 wire         EXE_exc_no_inst   	;
 wire         EXE_b_taken       	;
-wire[31:0]   EXE_bad_addr      	;//出错的地�?	
-wire[31:0]   EXE_cp0_wdata     	;//写到CP0寄存器的数�??
+wire[31:0]   EXE_bad_addr      	;//出错的地�?	
+wire[31:0]   EXE_cp0_wdata     	;//写到CP0寄存器的数�??
 
-wire[31:0]   EXE_vsrc1       	;//EXE级使�?
+wire[31:0]   EXE_vsrc1       	;//EXE级使�?
 wire[31:0]   EXE_vsrc2       	;
 wire[5:0]    EXE_ALUop       	;
 wire         EXE_MULT        	;
@@ -258,9 +258,11 @@ wire         EXE_rt1_valid      ;
 wire         EXE_rt2_valid      ;
 wire[31:0]   EXE_src1           ;
 wire[31:0]   EXE_src2           ;
+wire[31:0]   EXE_rt1            ;
+wire[31:0]   EXE_rt2            ;
 wire         EXE_use_rt1        ;
 wire         EXE_use_rt2        ;
-wire         EXE_b_predict   	;//CP0/MM/WB级使�?
+wire         EXE_b_predict   	;//CP0/MM/WB级使�?
 wire[31:0]   EXE_pc          	;
 wire[31:0]   EXE_inst        	;
 wire         EXE_goto_CP0    	;
@@ -381,7 +383,7 @@ cache_wrapper u_cache_wrapper
     .Inst_Req_Ack    (Inst_Req_Ack),  
     .Inst_Ack        (Cache_inst_ack),
     .instruction     (Cache_inst),
-    .pc_req          (),////////////?????????????????????????????????????????????????这是啥信�?
+    .pc_req          (),////////////?????????????????????????????????????????????????这是啥信�?
     .Inst_Valid      (Cache_inst_valid),
 
     .Flush           (Cache_flush),
@@ -403,7 +405,7 @@ IF_stage u_IF_stage(
     .resetn          	  (aresetn          		) ,
 								
     .ID_j_pc         	  (ID_pc           		) , //跳转指令的pc，来自译码级
-	.CP0_EPC         	  (CP0_EPC         		) , //EPC寄存�?    
+	.CP0_EPC         	  (CP0_EPC         		) , //EPC寄存�?    
 	.Inst_Req_Ack    	  (Inst_Req_Ack    		) ,
     .IF_stall        	  (IF_stall        		) , //阻塞信号
 	.Exception       	  (Exception       		) , //例外信号
@@ -412,9 +414,9 @@ IF_stage u_IF_stage(
 								
 	.ID_ERET         	  (ID_ERET         		) , //ERET指令	
 	.ID_b_predict    	  (ID_b_predict    		) , //转移预测结果	
-	.Delay           	  (Delay           		) , //延迟槽信�?
+	.Delay           	  (Delay           		) , //延迟槽信�?
 
-	.MEM_predict_error 	  (MEM_predict_error 	) , //转移预测错信�?
+	.MEM_predict_error 	  (MEM_predict_error 	) , //转移预测错信�?
 	.MEM_correct_branch_pc(MEM_correct_branch_pc) , //转移预测正确pc
  
 	.IF_pc           	  (IF_pc           		) , //取指级pc 
@@ -435,10 +437,12 @@ ID_stage u_ID_stage(
 
 	.ID_reg_rdata1      (rdata1      ),
     .ID_reg_rdata2      (rdata2      ),
-	.ID_reg_valid1      (rdata1_valid      ), // 从主寄存器堆接过�?
+	.ID_reg_valid1      (rdata1_valid      ), // 从主寄存器堆接过�?
 	.ID_reg_valid2      (rdata2_valid      ), 
 	.Cache_inst         (Cache_inst         ),
 	.Cache_inst_valid   (Cache_inst_valid   ),
+    .MEM_b              (MEM_b              ),
+    .MEM_b_taken        (MEM_b_taken        ),
 
 	.Cache_inst_ack     (Cache_inst_ack     ),
 	.Delay              (Delay              ),
@@ -449,10 +453,10 @@ ID_stage u_ID_stage(
 	.ID_vsrc2_valid     (ID_vsrc2_valid     ),
 	.ID_rt1_valid       (ID_rt1_valid       ),
 	.ID_rt2_valid       (ID_rt2_valid       ),
-	.ID_goto_MEM        (ID_goto_MEM        ),   // 是否经过MEM�?
-	.ID_goto_CP0        (ID_goto_CP0        ),   // 是否经过CP0�? (将LO HI 的修改也放在CP0�?)
-	.ID_goto_WB         (ID_goto_WB         ),    // 是否经过WB�?
-	.ID_rt1             (ID_rt1             ),    // BR指令用，记录两个源寄存器的�??
+	.ID_goto_MEM        (ID_goto_MEM        ),   // 是否经过MEM�?
+	.ID_goto_CP0        (ID_goto_CP0        ),   // 是否经过CP0�? (将LO HI 的修改也放在CP0�?)
+	.ID_goto_WB         (ID_goto_WB         ),    // 是否经过WB�?
+	.ID_rt1             (ID_rt1             ),    // BR指令用，记录两个源寄存器的�??
 	.ID_rt2             (ID_rt2             ),
 
 	.ID_vsrc1           (ID_vsrc1           ), //以下是assign了但是没有声明的
@@ -523,7 +527,7 @@ EXE_stage u_EXE_stage(
 	.EXE_stall			(EXE_stall			),
 	.EXE_clear			(EXE_flush			),
 
-    .fwd_vsrc1			(rdata1             ),//�?4个fwd信号来自副寄存堆
+    .fwd_vsrc1			(rdata1             ),//�?4个fwd信号来自副寄存堆
     .fwd_vsrc2			(rdata2             ),
     .fwd_vsrc1_valid	(rdata1_valid       ),
     .fwd_vsrc2_valid	(rdata2_valid       ),
@@ -536,7 +540,7 @@ EXE_stage u_EXE_stage(
     .EXE_rt1_for        (EXE_rt1_for        ),
     .EXE_rt2_for        (EXE_rt2_for        ),
 
-    .ID_vsrc1       	(ID_vsrc1       	), //**** EXE级使�? ****
+    .ID_vsrc1       	(ID_vsrc1       	), //**** EXE级使�? ****
     .ID_vsrc2       	(ID_vsrc2       	),
     .ID_ALUop       	(ID_ALUop       	),
     .ID_MULT        	(ID_MULT        	),
@@ -596,23 +600,23 @@ EXE_stage u_EXE_stage(
     .EXE_alu_result 	(EXE_alu_result 	),
     .EXE_mul_result 	(EXE_mul_result 	),
     .EXE_mul_finish 	(EXE_mul_finish 	),
-    .EXE_div_result 	(EXE_div_result 	), //�?32位：余数 �?32位：�?
+    .EXE_div_result 	(EXE_div_result 	), //�?32位：余数 �?32位：�?
     .EXE_div_finish 	(EXE_div_finish 	),
     .EXE_mem_wen    	(EXE_mem_wen    	),
     .EXE_mem_wdata  	(EXE_mem_wdata  	), 
 
     .EXE_exc_overflow  	(EXE_exc_overflow  	),
-    .EXE_exc_addr_load 	(EXE_exc_addr_load 	), //取指或读数据错误 //取�?�地�?错我咋判�?
-    .EXE_exc_addr_store	(EXE_exc_addr_store	), //写数据地�?错误
+    .EXE_exc_addr_load 	(EXE_exc_addr_load 	), //取指或读数据错误 //取�?�地�?错我咋判�?
+    .EXE_exc_addr_store	(EXE_exc_addr_store	), //写数据地�?错误
     .EXE_exc_addr_inst 	(EXE_exc_addr_inst 	),
     .EXE_exc_syscall   	(EXE_exc_syscall   	),
     .EXE_exc_break     	(EXE_exc_break     	),
     .EXE_exc_no_inst   	(EXE_exc_no_inst   	),
     .EXE_b_taken       	(EXE_b_taken       	),
-    .EXE_bad_addr      	(EXE_bad_addr      	), //出错的地�?	
-	.EXE_cp0_wdata     	(EXE_cp0_wdata     	), //写到CP0寄存器的数�??
+    .EXE_bad_addr      	(EXE_bad_addr      	), //出错的地�?	
+	.EXE_cp0_wdata     	(EXE_cp0_wdata     	), //写到CP0寄存器的数�??
 
-    .EXE_vsrc1       	(EXE_vsrc1       	), //EXE级使�?
+    .EXE_vsrc1       	(EXE_vsrc1       	), //EXE级使�?
     .EXE_vsrc2       	(EXE_vsrc2       	),
     .EXE_ALUop       	(EXE_ALUop       	),
     .EXE_MULT        	(EXE_MULT        	),
@@ -649,9 +653,11 @@ EXE_stage u_EXE_stage(
     .EXE_rt2_valid      (EXE_rt2_valid      ),
     .EXE_src1           (EXE_src1           ),
     .EXE_src2           (EXE_src2           ),
+    .EXE_rt1            (EXE_rt1            ),
+    .EXE_rt2            (EXE_rt2            ),
     .EXE_use_rt1        (EXE_use_rt1        ),
     .EXE_use_rt2        (EXE_use_rt2        ),
-    .EXE_b_predict   	(EXE_b_predict   	), //CP0/MM/WB级使�?
+    .EXE_b_predict   	(EXE_b_predict   	), //CP0/MM/WB级使�?
     .EXE_pc          	(EXE_pc          	),
     .EXE_inst        	(EXE_inst        	),
     .EXE_goto_CP0    	(EXE_goto_CP0    	),
@@ -736,14 +742,14 @@ WB_stage u_WB_stage(
     .clk          (aclk          ),
     .resetn       (aresetn       ),
 
-	.EXE_result   (EXE_result   ), // EXE级计算结�?
+	.EXE_result   (EXE_result   ), // EXE级计算结�?
 	.MEM_pc       (MEM_pc       ),
 	.MEM_inst     (MEM_inst     ),
-	.MEM_reg_we   (MEM_reg_we   ), // 访存地址�?后两�?
+	.MEM_reg_we   (MEM_reg_we   ), // 访存地址�?后两�?
 	.MEM_dest     (MEM_dest     ),
-	.MEM_goto_MEM (MEM_goto_MEM ), // 是否经过MEM�?
+	.MEM_goto_MEM (MEM_goto_MEM ), // 是否经过MEM�?
 	.MEM_mem_rdata(MEM_mem_rdata),
-	.MEM_reg_rt   (MEM_reg_rt   ), // 从MEM传来的当前指令的 rt寄存器�??
+	.MEM_reg_rt   (MEM_reg_rt   ), // 从MEM传来的当前指令的 rt寄存器�??
     .MEM_LB       (MEM_LB       ), //load的各种one hot
     .MEM_LBU      (MEM_LBU      ),
     .MEM_LH       (MEM_LH       ),
@@ -763,29 +769,29 @@ CP0_stage u_CP0_stage(
     .resetn				(aresetn				),
 
 	.EXE_exc_overflow  	(EXE_exc_overflow  	),   //溢出
-	.EXE_exc_addr_load 	(EXE_exc_addr_load 	),   //取数地址�?
-	.EXE_exc_addr_store	(EXE_exc_addr_store	),   //存数地址�?
-	.EXE_exc_addr_inst 	(EXE_exc_addr_inst 	),   //取指令地�?�?
+	.EXE_exc_addr_load 	(EXE_exc_addr_load 	),   //取数地址�?
+	.EXE_exc_addr_store	(EXE_exc_addr_store	),   //存数地址�?
+	.EXE_exc_addr_inst 	(EXE_exc_addr_inst 	),   //取指令地�?�?
 	.EXE_exc_syscall   	(EXE_exc_syscall   	),   //
 	.EXE_exc_break     	(EXE_exc_break     	),   //
 	.EXE_exc_no_inst   	(EXE_exc_no_inst   	),   //保留指令例外
 
 	.EXE_irp_signal   	(EXE_irp_signal   	),    //外部传来的硬件中断信号interrupt signal
-	.EXE_inst         	(EXE_inst         	),    //指令�?15:11位，来判断MTC0时写到哪个寄存器�?
-	.EXE_bad_addr     	(EXE_bad_addr     	),    //出错的地�?	
-	.EXE_wdata        	(EXE_wdata        	),    //写到CP0寄存器的数�??
+	.EXE_inst         	(EXE_inst         	),    //指令�?15:11位，来判断MTC0时写到哪个寄存器�?
+	.EXE_bad_addr     	(EXE_bad_addr     	),    //出错的地�?	
+	.EXE_wdata        	(EXE_wdata        	),    //写到CP0寄存器的数�??
 	.EXE_pc           	(EXE_pc           	),    //发生中断例外时指令对应的PC
-	.EXE_delay_slot   	(EXE_delay_slot   	),    //例外延迟槽信号，表示例外是否在延迟槽�?
+	.EXE_delay_slot   	(EXE_delay_slot   	),    //例外延迟槽信号，表示例外是否在延迟槽�?
 
 	.EXE_ERET         	(EXE_ERET         	),	//ERET指令
 	.EXE_MTC0         	(EXE_MTC0         	),    //MTC0指令
 
-	.EXE_mul_finish 	(EXE_mul_finish 	),	//乘法器结果是否有�?   (MULT和MULTU指令)	
-	.EXE_div_finish 	(EXE_div_finish 	),	//除法器结果是否有�?
+	.EXE_mul_finish 	(EXE_mul_finish 	),	//乘法器结果是否有�?   (MULT和MULTU指令)	
+	.EXE_div_finish 	(EXE_div_finish 	),	//除法器结果是否有�?
 	.EXE_MTLO          	(EXE_MTLO          	),	//MTLO指令
 	.EXE_MTHI          	(EXE_MTHI          	),	//MTHI指令
-	.EXE_mul_result    	(EXE_mul_result    	),	//乘法器结�?
-	.EXE_div_result    	(EXE_div_result    	),	//除法器结�?
+	.EXE_mul_result    	(EXE_mul_result    	),	//乘法器结�?
+	.EXE_div_result    	(EXE_div_result    	),	//除法器结�?
 
 	.CP0_CAUSE			(CP0_CAUSE			),
 	.CP0_STATUS			(CP0_STATUS			),
@@ -823,14 +829,14 @@ stall  u_stall(
 	.EXE_stall			 (EXE_stall			  ),
 	.MEM_stall			 (MEM_stall			  ),
 
-	.EXE_srcA_for		 (EXE_srcA_for		  ),    // 1表示前�?�数据已经准备好�?0表示未准备好
+	.EXE_srcA_for		 (EXE_srcA_for		  ),    // 1表示前�?�数据已经准备好�?0表示未准备好
 	.EXE_srcB_for		 (EXE_srcB_for		  ),
 
-	.EXE_src1_forward	 (EXE_src1_forward	  ),   // EXE的源寄存�?1是否�?要拿前�?��??
-	.EXE_src2_forward	 (EXE_src2_forward	  ),   // EXE的源寄存�?2是否�?要拿前�?��??
+	.EXE_src1_forward	 (EXE_src1_forward	  ),   // EXE的源寄存�?1是否�?要拿前�?��??
+	.EXE_src2_forward	 (EXE_src2_forward	  ),   // EXE的源寄存�?2是否�?要拿前�?��??
 
 	.sec_reg_rdata1_valid(),
-	.sec_reg_rdata2_valid(),   // 从sec_regfile 中获得，表示前�?��?�已有效
+	.sec_reg_rdata2_valid(),   // 从sec_regfile 中获得，表示前�?��?�已有效
 	.ID_vsrc1_valid		 (ID_vsrc1_valid	  ),
 	.ID_vsrc2_valid		 (ID_vsrc2_valid	  )
 );
@@ -847,11 +853,11 @@ regfile u_regfile(
     .rdata2		 (rdata2		),
 	.rdata2_valid(rdata2_valid	),
 
-	.flush		 (),					///////////////////?????????????????????????从哪�?
+	.flush		 (),					///////////////////?????????????????????????从哪�?
 
 	.waddr		 (waddr		 	),
     .wdata		 (wdata		 	),
-	.ID_dest	 (ID_dest	 	),	//只有ID级不被阻塞，正常向前传�?�时才将ID_dest的V位清0
+	.ID_dest	 (ID_dest	 	),	//只有ID级不被阻塞，正常向前传�?�时才将ID_dest的V位清0
 	.ID_stall    (ID_stall      )
 );
 
@@ -868,7 +874,7 @@ regfile u_regfile(
 
     .waddr		 (waddr		 	),
     .wdata		 (wdata		 	),
-	.flush		 (),					///////////////////?????????????????????????从哪�?
+	.flush		 (),					///////////////////?????????????????????????从哪�?
 	.ID_dest	 (ID_dest	 	),
 	.EXE_forward (EXE_forward	),
 	.EXE_addr	 (EXE_addr	 	),

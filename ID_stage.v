@@ -12,11 +12,12 @@ module ID_stage(
 	//非流水线信号        
 	input  wire[31:0]    ID_reg_rdata1       ,
     input  wire[31:0]    ID_reg_rdata2       ,
-	input                ID_reg_valid1       , // 从主寄存器堆接过来
+	input                ID_reg_valid1       , // 从主寄存器堆接过�??
 	input                ID_reg_valid2       , 
 	input  wire[31:0]    Cache_inst          ,
 	input  wire          Cache_inst_valid    ,
-	  
+	input  wire          MEM_b               ,
+	input  wire          MEM_b_taken         ,
 	//O  
 	//ID产生  
 	output wire          Cache_inst_ack      ,
@@ -28,10 +29,10 @@ module ID_stage(
 	output wire          ID_vsrc2_valid      ,
 	output wire          ID_rt1_valid        ,
 	output wire          ID_rt2_valid        ,
-	output wire          ID_goto_MEM         ,   // 是否经过MEM级
-	output wire          ID_goto_CP0         ,   // 是否经过CP0级 (将LO HI 的修改也放在CP0级)
-	output wire          ID_goto_WB          ,    // 是否经过WB级
-	output wire[31:0]    ID_rt1              ,    // BR指令用，记录两个源寄存器的值
+	output wire          ID_goto_MEM         ,   // 是否经过MEM�??
+	output wire          ID_goto_CP0         ,   // 是否经过CP0�?? (将LO HI 的修改也放在CP0�??)
+	output wire          ID_goto_WB          ,    // 是否经过WB�??
+	output wire[31:0]    ID_rt1              ,    // BR指令用，记录两个源寄存器的�??
 	output wire[31:0]    ID_rt2              ,
        
 	output wire[31:0]    ID_vsrc1            , //以下是assign了但是没有声明的
@@ -91,7 +92,7 @@ module ID_stage(
     output wire[31:0]    ID_vsrc1_temp       ,
     output wire[31:0]    ID_vsrc2_temp       ,
 	
-	//ID传递
+	//ID传�??
 	output reg[31:0] 	ID_pc                ,
 	output reg[31:0] 	ID_inst              ,
 	output reg			ID_delay_slot        ,
@@ -101,9 +102,9 @@ module ID_stage(
 	assign Cache_inst_ack = !(ID_stall | ID_clear | !resetn);
 	
 	/*
-	wire ID_arithmetic_unimm; // 不带立即数的算术运算，不包括乘除法(dest地址为[15:11])
-	wire ID_arithmetic_imm;   // 带立即数的算术运算
-	wire ID_arithmetic;       // 所有算术运算，包括乘除法
+	wire ID_arithmetic_unimm; // 不带立即数的算术运算，不包括乘除�??(dest地址为[15:11])
+	wire ID_arithmetic_imm;   // 带立即数的算术运�??
+	wire ID_arithmetic;       // �??有算术运算，包括乘除�??
 	*/
 	
 	
@@ -179,6 +180,10 @@ module ID_stage(
 	wire         SB;
 	wire         SH;
 	wire         SW;
+	wire         SWL;
+	wire         SWR;
+	wire         LWL;
+	wire         LWR;
 	
 	
 	// 特权指令
@@ -264,7 +269,7 @@ module ID_stage(
 	assign ID_arithmetic = ID_arithmetic_imm | ID_arithmetic_unimm | MULT | MULTU | DIV | DIVU;
 	
 	assign ID_logic_unimm = AND | NOR | OR | XOR;
-	assign ID_logic_imm = ANDI | LUI | ORR | XORI;
+	assign ID_logic_imm = ANDI | LUI | ORI | XORI;
 	assign ID_logic = ID_logic_imm | ID_logic_unimm;
 	
 	assign ID_shift = SLLV | SLL | SRAV | SRA | SRLV | SRL;
@@ -282,18 +287,18 @@ module ID_stage(
 	
 	assign ID_no_inst = (ID_arithmetic | ID_logic | ID_shift | ID_branch_1 | ID_branch_2 |
 						 ID_jump | ID_jump_reg | ID_move | ID_load | ID_store |
-						 BREAK | SYSCALL | ERET | MFC0 | MTC0) 1'b0 : 1'b1;
+						 BREAK | SYSCALL | ERET | MFC0 | MTC0)? 1'b0 : 1'b1;
 	
 	
 	assign ID_dest = (ID_arithmetic_unimm | ID_logic_unimm | ID_shift | JALR | MFHI | MFLO) ? ID_inst[15:11] :
 					 (ID_arithmetic_imm | ID_logic_imm | ID_load | MFC0) ? ID_inst[20:16] :
-					 (BLTZAL | BGEZAL | JAL) 5'd31 : 
+					 (BLTZAL | BGEZAL | JAL)?  5'd31 : 
 					 5'd0;
 					 
 	assign ID_src1 = (ID_jump | MFC0 | MTC0 | ERET | BREAK | SYSCALL) ? 5'd0 :
 					 ID_inst[25:21];
 	
-	assign ID_src2 = (ID_arithmetic_imm | ID_logic_imm | ID_branch_2 | ID_jump | ID_load | ERER | BREAK | SYSCALL | MFC0) ? 5'd0 :
+	assign ID_src2 = (ID_arithmetic_imm | ID_logic_imm | ID_branch_2 | ID_jump | ID_load | ERET | BREAK | SYSCALL | MFC0) ? 5'd0 :
 					 ID_inst[20:16];
 	
 	
@@ -366,7 +371,7 @@ module ID_stage(
 	
 	
 	assign ID_goto_MEM = ID_load;
-	assign ID_goto_CP0 = ID_DIV | ID_DIVU | ID_MULT | ID_MULTU | MTLO | MTHI | BREAK | SYSCALL | MTC0;
+	assign ID_goto_CP0 = DIV | DIVU | MULT | MULTU | MTLO | MTHI | BREAK | SYSCALL | MTC0;
 	assign ID_goto_WB = ID_arithmetic | ID_logic | MFHI | MFLO | ID_jump | ID_jump_reg | ID_branch_1 | ID_branch_2;
 	
 	always @(posedge clk)
@@ -425,9 +430,9 @@ module ID_stage(
 	bpu BPU(
         .clk            (clk         ),
         .resetn         (resetn      ),
-	    .id_j           (ID_jump     ), //id级是否是j型指令
-        .mm_b           (MEM_b       ), //mm级是否是b型指令
-        .mm_b_taken     (MEM_b_taken ),	//mm级b型指令是否发生跳转
+	    .id_j           (ID_jump     ), //id级是否是j型指�??
+        .mm_b           (MEM_b       ), //mm级是否是b型指�??
+        .mm_b_taken     (MEM_b_taken ),	//mm级b型指令是否发生跳�??
 	    .id_PC          (ID_pc       ),	//id级处理的pc
         .id_b           (ID_b        ),
 	    .predict_taken  (ID_b_predict)
